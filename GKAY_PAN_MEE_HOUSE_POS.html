@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAY PAN MEE HOUSE POS</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#f3f4f6;color:#222}
+header{background:#111;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:48px;height:48px;border-radius:50%;background:#fff3d0;display:grid;place-items:center;font-size:25px}
+.brand b{font-size:20px}.brand small{display:block;color:#ddd;margin-top:2px}
+.wrap{display:grid;grid-template-columns:1.65fr .9fr;gap:12px;padding:12px;max-width:1250px;margin:auto}
+.card{background:#fff;border-radius:12px;padding:12px;box-shadow:0 1px 5px #0001;margin-bottom:12px}
+h2{font-size:18px;margin:4px 0 10px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.btn{border:0;border-radius:9px;padding:13px 6px;background:#e6f3ff;color:#0670c8;font-weight:700;font-size:15px;cursor:pointer;min-height:62px}
+.btn:hover{filter:brightness(.97)}.btn.main{background:#fff1c9}.btn.drink{background:#e6f7e8;color:#087a32}.btn.add{background:#e8f4ff}.btn:active{transform:scale(.98)}
+.price{display:block;font-size:13px;margin-top:5px;font-weight:500}
+.order{min-height:300px}.row{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #eee}
+.itemname{flex:1}.qty{display:flex;align-items:center;gap:6px}.mini{width:30px;height:30px;border:0;border-radius:7px;background:#eee;font-weight:800;cursor:pointer}
+.total{display:flex;justify-content:space-between;font-size:22px;font-weight:800;padding:16px 0}.paygrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pay{border:0;color:#fff;border-radius:9px;padding:15px;font-size:16px;font-weight:800;cursor:pointer}.cash{background:#10b75b}.tng{background:#0879d8}.fp{background:#ed3d82}.clear{background:#f28b27}
+nav{display:flex;background:#111;color:#fff;position:sticky;bottom:0;z-index:5}.navbtn{flex:1;padding:12px 5px;border:0;background:#111;color:#fff;font-size:14px;cursor:pointer}.navbtn.active{background:#0879d8}
+.page{display:none}.page.active{display:block}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 6px;border-bottom:1px solid #eee;text-align:left}th{background:#f5f5f5}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#fff;border-radius:10px;padding:13px;box-shadow:0 1px 5px #0001}.stat b{font-size:20px;display:block;margin-top:4px}
+select,input{padding:9px;border:1px solid #ddd;border-radius:8px}.toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.modal{display:none;position:fixed;inset:0;background:#0007;z-index:20;align-items:center;justify-content:center}.modal.show{display:flex}.modalbox{background:#fff;width:min(430px,92vw);border-radius:14px;padding:18px}.modalbox h3{margin-top:0}.modalbox button{margin-top:8px;width:100%;padding:12px;border:0;border-radius:8px;font-weight:700}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}.grid{grid-template-columns:repeat(3,1fr)}header{position:relative}.stats{grid-template-columns:1fr 1fr}.brand b{font-size:17px}}
+@media(max-width:480px){.grid{gap:6px}.btn{font-size:13px;padding:9px 4px;min-height:58px}.wrap{padding:7px}.card{padding:9px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">🍜</div><div><b>KAY PAN MEE HOUSE</b><small>嘉琪面粉粿 · POS</small></div></div>
+  <div id="clock"></div>
+</header>
+
+<div id="orderPage" class="page active">
+<div class="wrap">
+<main>
+<div class="card"><h2>🍲 面粉粿 / 板面 Noodle</h2><div id="noodles" class="grid"></div></div>
+<div class="card"><h2>＋ 加料 Add On</h2><div id="addons" class="grid"></div></div>
+<div class="card"><h2>🥤 饮料 Drinks</h2><div id="drinks" class="grid"></div></div>
+<div class="card"><h2>📌 今日快速营业</h2><div class="stats">
+<div class="stat">营业额<b id="quickTotal">RM0.00</b></div>
+<div class="stat">订单<b id="quickOrders">0</b></div>
+<div class="stat">现金<b id="quickCash">RM0.00</b></div>
+</div></div>
+</main>
+<aside>
+<div class="card order"><h2>当前订单</h2>
+<div style="display:flex;gap:6px;margin-bottom:8px">
+<button class="btn" style="min-height:42px;background:#111;color:#fff" onclick="setOrderType('堂食')">堂食</button>
+<button class="btn" style="min-height:42px;background:#e6f3ff" onclick="setOrderType('打包')">打包</button>
+</div>
+<div id="orderType" style="font-size:13px;color:#777;margin-bottom:5px">订单类型：堂食</div>
+<div id="cart"></div><div class="total"><span>总计</span><span id="total">RM0.00</span></div>
+<div class="paygrid">
+<button class="pay cash" onclick="pay('现金')">💵 现金</button>
+<button class="pay tng" onclick="pay('TNG')">TNG</button>
+<button class="pay fp" onclick="pay('Foodpanda')">Foodpanda</button>
+<button class="pay clear" onclick="clearCart()">清空订单</button>
+</div></div>
+</aside>
+</div>
+</div>
+
+<div id="salesPage" class="page"><div class="card" style="margin:12px"><div class="toolbar"><h2>📊 销售记录</h2><input id="dateFilter" type="date" onchange="renderSales()"></div><div style="overflow:auto"><table><thead><tr><th>时间</th><th>单号</th><th>项目</th><th>数量</th><th>金额</th><th>支付方式</th></tr></thead><tbody id="salesBody"></tbody></table></div></div></div>
+
+<div id="summaryPage" class="page"><div style="padding:12px"><h2>📈 营业汇总</h2><div class="toolbar"><input id="sumDate" type="date" onchange="renderSummary()"></div><div class="stats">
+<div class="stat">订单数<b id="sOrders">0</b></div><div class="stat">总数量<b id="sQty">0</b></div><div class="stat">营业额<b id="sTotal">RM0.00</b></div>
+<div class="stat">现金<b id="sCash">RM0.00</b></div><div class="stat">TNG<b id="sTng">RM0.00</b></div><div class="stat">Foodpanda<b id="sFp">RM0.00</b></div>
+</div></div></div>
+
+<div id="settingsPage" class="page"><div class="card" style="margin:12px"><h2>⚙️ 设置</h2><p>这个版本的数据保存在这台设备的浏览器里。</p><button class="pay clear" onclick="if(confirm('确定删除全部销售记录吗？')){localStorage.removeItem('kpm_sales');renderSales();renderSummary();}">删除全部销售记录</button></div></div>
+
+<nav>
+<button class="navbtn active" onclick="showPage('orderPage',this)">🍜<br>点餐</button>
+<button class="navbtn" onclick="showPage('salesPage',this)">▤<br>订单</button>
+<button class="navbtn" onclick="showPage('summaryPage',this)">▥<br>记录</button>
+<button class="navbtn" onclick="showPage('settingsPage',this)">⚙<br>设置</button>
+</nav>
+
+
+<div id="receiptModal" class="modal"><div class="modalbox">
+  <h3>订单完成</h3>
+  <div id="receiptPreview" style="background:#fff;border:1px dashed #ccc;padding:14px;font-family:monospace;font-size:13px"></div>
+  <button style="background:#111;color:#fff" onclick="printReceipt()">🖨️ 打印单据</button>
+  <button onclick="closeReceipt()">关闭</button>
+</div></div>
+
+<div id="cashModal" class="modal"><div class="modalbox"><h3>现金收款</h3><p>应收：<b id="due"></b></p><input id="cashGiven" type="number" step="0.01" placeholder="顾客给多少钱" style="width:100%" oninput="calcChange()"><p>找零：<b id="change">RM0.00</b></p><button style="background:#10b75b;color:#fff" onclick="confirmCash()">确认完成</button><button onclick="closeModal()">取消</button></div></div>
+
+<script>
+const products={
+ noodles:[
+ ['药材汤 小',9],['药材汤 大',10],['罗面 小',9],['罗面 大',10],
+ ['虾酱汤 小',9],['虾酱汤 大',10],['虾酱干 小',9],['虾酱干 大',10]
+ ],
+ addons:[['加料',1],['加菜',1],['加蛋',1],['加面',1],['加江鱼仔',1],['加炸葱',1],['水饺',1.5],['加肉碎',2]],
+ drinks:[['美禄冰',2.5],['美禄热',2],['咖啡冰',3],['咖啡热',2.5],['豆浆',2.5],['可乐',3],['100号',2.5]]
+};
+let cart=[]; let orderType='堂食';
+const money=n=>'RM'+Number(n).toFixed(2);
+function makeButtons(id,arr,cls){document.getElementById(id).innerHTML=arr.map((p,i)=>`<button class="btn ${cls}" onclick="add(${JSON.stringify(p[0])},${p[1]})">${p[0]}<span class="price">${money(p[1])}</span></button>`).join('')}
+makeButtons('noodles',products.noodles,'main');makeButtons('addons',products.addons,'add');makeButtons('drinks',products.drinks,'drink');
+
+function setOrderType(t){orderType=t;document.getElementById('orderType').textContent='订单类型：'+t}\nfunction add(name,price){let x=cart.find(i=>i.name===name);if(x)x.qty++;else cart.push({name,price,qty:1});renderCart()}
+function changeQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCart()}
+function renderCart(){let el=document.getElementById('cart');el.innerHTML=cart.length?cart.map((x,i)=>`<div class="row"><div class="itemname">${x.name}<br><small>${money(x.price)} × ${x.qty}</small></div><div class="qty"><button class="mini" onclick="changeQty(${i},-1)">−</button><b>${x.qty}</b><button class="mini" onclick="changeQty(${i},1)">+</button></div><b>${money(x.price*x.qty)}</b></div>`).join(''):'<p style="color:#999">尚未点餐</p>';document.getElementById('total').textContent=money(cart.reduce((s,x)=>s+x.price*x.qty,0))}
+function clearCart(){cart=[];renderCart()}
+function pay(method){if(!cart.length)return alert('请先点餐');if(method==='现金'){document.getElementById('due').textContent=money(getTotal());document.getElementById('cashGiven').value='';document.getElementById('change').textContent='RM0.00';document.getElementById('cashModal').classList.add('show')}else saveSale(method)}
+function getTotal(){return cart.reduce((s,x)=>s+x.price*x.qty,0)}
+function calcChange(){let c=Number(document.getElementById('cashGiven').value||0)-getTotal();document.getElementById('change').textContent=money(Math.max(0,c))}
+function confirmCash(){let given=Number(document.getElementById('cashGiven').value||0);if(given<getTotal())return alert('顾客金额不足');saveSale('现金');closeModal()}
+function closeModal(){document.getElementById('cashModal').classList.remove('show')}
+function sales(){return JSON.parse(localStorage.getItem('kpm_sales')||'[]')}
+function saveSale(method){
+ let list=sales();
+ let no=1001+(list.length?Math.max(...list.map(x=>x.no||1000))-1000:0);
+ let total=getTotal();
+ let order={orderType, time:new Date().toLocaleTimeString('zh-MY',{hour:'2-digit',minute:'2-digit'}),date:new Date().toISOString().slice(0,10),no,items:cart.map(x=>({...x})),qty:cart.reduce((s,x)=>s+x.qty,0),total,method};
+ list.push(order);
+ localStorage.setItem('kpm_sales',JSON.stringify(list));
+ showReceipt(order);
+ clearCart(); renderSales(); renderSummary();
+}
+function showReceipt(o){
+ document.getElementById('receiptPreview').innerHTML =
+ `<div style="text-align:center;font-weight:800;font-size:17px">KAY PAN MEE HOUSE</div>
+  <div style="text-align:center">嘉琪面粉粿</div>
+  <hr>
+  <div>单号：${o.no}</div><div>时间：${o.time}</div><hr>
+  ${o.items.map(i=>`<div style="display:flex;justify-content:space-between"><span>${i.name} ×${i.qty}</span><span>${money(i.price*i.qty)}</span></div>`).join('')}
+  <hr><div style="display:flex;justify-content:space-between;font-weight:800"><span>总计</span><span>${money(o.total)}</span></div>
+  <div>付款方式：${o.method}</div><br><div style="text-align:center">谢谢光临！</div>`;
+ document.getElementById('receiptModal').classList.add('show');
+}
+function closeReceipt(){document.getElementById('receiptModal').classList.remove('show')}
+function printReceipt(){
+ const content=document.getElementById('receiptPreview').innerHTML;
+ const w=window.open('','_blank','width=420,height=650');
+ if(!w){alert('浏览器阻止了打印窗口，请允许弹出窗口');return}
+ w.document.write(`<html><head><title>KAY PAN MEE HOUSE Receipt</title>
+ <style>@page{size:80mm auto;margin:3mm}body{font-family:Arial,sans-serif;width:72mm;margin:auto;font-size:13px}hr{border:0;border-top:1px dashed #777;margin:8px 0}</style>
+ </head><body>${content}</body></html>`);
+ w.document.close(); w.focus(); w.print();
+}
+function renderSales(){let d=document.getElementById('dateFilter').value||new Date().toISOString().slice(0,10);document.getElementById('dateFilter').value=d;let rows=sales().filter(x=>x.date===d).reverse();document.getElementById('salesBody').innerHTML=rows.map(x=>`<tr><td>${x.time}</td><td>${x.no}</td><td>${x.items.map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join('<br>')}</td><td>${x.qty}</td><td>${money(x.total)}</td><td>${x.method}</td></tr>`).join('')||'<tr><td colspan="6">今天还没有销售记录</td></tr>'}
+function renderSummary(){let d=document.getElementById('sumDate').value||new Date().toISOString().slice(0,10);document.getElementById('sumDate').value=d;let a=sales().filter(x=>x.date===d);let total=a.reduce((s,x)=>s+x.total,0);let qty=a.reduce((s,x)=>s+x.qty,0);let by=m=>a.filter(x=>x.method===m).reduce((s,x)=>s+x.total,0);document.getElementById('sOrders').textContent=a.length;document.getElementById('sQty').textContent=qty;document.getElementById('sTotal').textContent=money(total);document.getElementById('sCash').textContent=money(by('现金'));document.getElementById('sTng').textContent=money(by('TNG'));document.getElementById('sFp').textContent=money(by('Foodpanda'));
+let q=document.getElementById('quickTotal'); if(q)q.textContent=money(total);
+let qo=document.getElementById('quickOrders'); if(qo)qo.textContent=a.length;
+let qc=document.getElementById('quickCash'); if(qc)qc.textContent=money(by('现金'));
+}
+function showPage(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='salesPage')renderSales();if(id==='summaryPage')renderSummary()}
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}setInterval(tick,1000);tick();renderCart();renderSales();renderSummary();
+</script>
+</body>
+</html>
